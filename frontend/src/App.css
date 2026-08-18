@@ -1,34 +1,387 @@
-.app {
-  max-width: 800px;
-  margin: 80px auto;
-  padding: 20px;
-  font-family: Arial, sans-serif;
+* {
+  box-sizing: border-box;
 }
 
-.input-container {
+.app {
+  min-height: 100vh;
+  background: #ffffff;
+  color: #210909;
+  font-family: Arial, sans-serif;
+  transition: background 0.25s ease, color 0.25s ease;
+}
+
+/* ============================= */
+/*       BOTÓN HAMBURGUESA       */
+/* ============================= */
+
+.menu-button {
+  position: fixed;
+  top: 22px;
+  left: 22px;
+  z-index: 1001;
+
+  width: 42px;
+  height: 42px;
+
+  border: none;
+  border-radius: 10px;
+
+  background: transparent;
+  color: #210909;
+
+  font-size: 25px;
+  cursor: pointer;
+
+  transition: 0.2s ease;
+}
+
+.menu-button:hover {
+  background: #f1e7e7;
+}
+
+/* MENÚ ABIERTO */
+
+.app.menu-open .menu-button {
+  color: #ffffff;
+}
+
+.app.menu-open .menu-button:hover {
+  background: #450d0d;
+}
+
+/* MODO OSCURO */
+
+.dark-mode .menu-button {
+  color: #ffffff;
+}
+
+.dark-mode .menu-button:hover {
+  background: #450d0d;
+}
+
+
+/* ============================= */
+/*            SIDEBAR            */
+/* ============================= */
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+
+  width: 280px;
+  height: 100vh;
+
   display: flex;
-  gap: 10px;
+  flex-direction: column;
+
+  padding: 80px 20px 25px;
+
+  background: #210909;
+  color: #ffffff;
+
+  transform: translateX(-100%);
+  transition: transform 0.25s ease;
+
+  box-shadow: 8px 0 30px rgba(0, 0, 0, 0.15);
+}
+
+.sidebar.open {
+  transform: translateX(0);
+}
+
+.sidebar-content {
+  flex: 1;
+}
+
+
+/* ============================= */
+/*          NUEVO CHAT            */
+/* ============================= */
+
+.new-chat {
+  width: 100%;
+
+  padding: 13px 15px;
+
+  border: 1px solid #762020;
+  border-radius: 10px;
+
+  background: #3b1111;
+  color: #ffffff;
+
+  font-size: 15px;
+  text-align: left;
+
+  cursor: pointer;
+
+  transition: 0.2s ease;
+}
+
+.new-chat:hover {
+  background: #762020;
+}
+
+
+/* ============================= */
+/*           HISTORIAL            */
+/* ============================= */
+
+.history {
   margin-top: 30px;
+}
+
+.history-title {
+  margin: 0 8px 15px;
+
+  color: #a99696;
+
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+
+/* ============================= */
+/*          MODO OSCURO           */
+/* ============================= */
+
+.settings {
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  padding: 13px 15px;
+
+  border: none;
+  border-radius: 9px;
+
+  background: transparent;
+  color: #c9baba;
+
+  font-size: 15px;
+  text-align: left;
+
+  cursor: pointer;
+
+  transition: 0.2s ease;
+}
+
+.settings:hover {
+  background: #3b1111;
+  color: #ffffff;
+}
+
+
+/* ============================= */
+/*             MAIN               */
+/* ============================= */
+
+.main {
+  min-height: 100vh;
+  background: #ffffff;
+  transition: background 0.25s ease;
+}
+
+
+/* ============================= */
+/*            WELCOME             */
+/* ============================= */
+
+.welcome {
+  min-height: 100vh;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  padding: 40px;
+}
+
+.welcome-content {
+  width: 100%;
+  max-width: 650px;
+
+  text-align: center;
+}
+
+.welcome h1 {
+  margin: 0;
+
+  color: #210909;
+
+  font-size: 48px;
+  font-weight: 700;
+  letter-spacing: 6px;
+
+  transition: color 0.25s ease;
+}
+
+.subtitle {
+  margin: 18px 0 35px;
+
+  color: #6d6060;
+
+  font-size: 18px;
+
+  transition: color 0.25s ease;
+}
+
+
+/* ============================= */
+/*             INPUT             */
+/* ============================= */
+
+.input-container {
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 7px;
+
+  border: 1px solid #d8caca;
+  border-radius: 14px;
+
+  background: #ffffff;
+
+  box-shadow: 0 8px 30px rgba(50, 10, 10, 0.08);
+
+  transition: 0.25s ease;
+}
+
+.input-container:focus-within {
+  border-color: #721818;
 }
 
 .input-container input {
   flex: 1;
-  padding: 12px;
-  font-size: 16px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
+  min-width: 0;
+
+  padding: 13px 16px;
+
+  border: none;
+  outline: none;
+
+  background: transparent;
+  color: #210909;
+
+  font-size: 15px;
+}
+
+.input-container input::placeholder {
+  color: #a39797;
 }
 
 .input-container button {
-  padding: 12px 20px;
+  width: 44px;
+  height: 44px;
+
   border: none;
-  border-radius: 8px;
+  border-radius: 11px;
+
+  background: #721818;
+  color: #ffffff;
+
+  font-size: 21px;
+
   cursor: pointer;
+
+  transition: 0.2s ease;
 }
+
+.input-container button:hover {
+  background: #4d1010;
+}
+
+
+/* ============================= */
+/*             ANSWER            */
+/* ============================= */
 
 .answer {
   margin-top: 30px;
-  padding: 20px;
-  background: #f2f2f2;
-  border-radius: 8px;
+
+  padding: 22px;
+
+  border: 1px solid #e0d4d4;
+  border-radius: 14px;
+
+  background: #faf7f7;
+
+  text-align: left;
+}
+
+.answer strong {
+  color: #721818;
+}
+
+.answer p {
+  margin: 10px 0 0;
+
+  color: #403535;
+
+  line-height: 1.6;
+}
+
+
+/* ============================= */
+/*          MODO OSCURO           */
+/* ============================= */
+
+.dark-mode {
+  background: #120606;
+  color: #ffffff;
+}
+
+.dark-mode .main {
+  background: #120606;
+}
+
+.dark-mode .welcome h1 {
+  color: #ffffff;
+}
+
+.dark-mode .subtitle {
+  color: #a89595;
+}
+
+.dark-mode .input-container {
+  border-color: #641414;
+  background: #210909;
+
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode .input-container input {
+  color: #ffffff;
+}
+
+.dark-mode .input-container input::placeholder {
+  color: #776666;
+}
+
+.dark-mode .input-container button {
+  background: #b71919;
+}
+
+.dark-mode .input-container button:hover {
+  background: #d51d1d;
+}
+
+.dark-mode .answer {
+  border-color: #4d1111;
+  background: #2b0c0c;
+}
+
+.dark-mode .answer strong {
+  color: #e01b1b;
+}
+
+.dark-mode .answer p {
+  color: #d8caca;
 }
