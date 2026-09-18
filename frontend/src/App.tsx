@@ -23,6 +23,7 @@ type DatabaseConversation = {
   topic: string | null;
   level: string | null;
   created_at: string;
+  chat_id: string | null;
 };
 
 const STORAGE_KEY = "wollok-chat-history";
@@ -126,15 +127,75 @@ function App() {
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   const loadHistory = async () => {
-    try {
-      const response = await fetch("http://localhost:3000/history");
-      const data: DatabaseConversation[] = await response.json();
+  try {
+    const response = await fetch("http://localhost:3000/history");
 
-      console.log("Historial desde PostgreSQL:", data);
-    } catch (error) {
-      console.error("No se pudo cargar el historial:", error);
+    if (!response.ok) {
+      throw new Error("No se pudo obtener el historial");
     }
-  };
+
+    const data: DatabaseConversation[] = await response.json();
+
+    if (data.length === 0) {
+      return;
+    }
+
+    const groupedChats = new Map<string, ChatThread>();
+
+    for (const conversation of data) {
+      if (!conversation.chat_id) continue;
+
+      const existingChat = groupedChats.get(conversation.chat_id);
+
+      const studentMessage: ChatMessage = {
+        id: `db-question-${conversation.id}`,
+        role: "Alumno",
+        content: conversation.question,
+      };
+
+      const wollokMessage: ChatMessage = {
+        id: `db-answer-${conversation.id}`,
+        role: "Wollok",
+        content: conversation.answer,
+      };
+
+      const timestamp = new Date(conversation.created_at).getTime();
+
+      if (existingChat) {
+        existingChat.messages.push(studentMessage, wollokMessage);
+
+        if (timestamp > existingChat.updatedAt) {
+          existingChat.updatedAt = timestamp;
+        }
+      } else {
+        groupedChats.set(conversation.chat_id, {
+          id: conversation.chat_id,
+          title: conversation.question,
+          messages: [
+            createWelcomeMessage(),
+            studentMessage,
+            wollokMessage,
+          ],
+          updatedAt: timestamp,
+        });
+      }
+    }
+
+    const databaseChats = Array.from(groupedChats.values())
+      .map((chat) => ({
+        ...chat,
+        messages: chat.messages,
+      }))
+      .sort((a, b) => b.updatedAt - a.updatedAt);
+
+    if (databaseChats.length > 0) {
+      setChats(databaseChats);
+      setActiveChatId(databaseChats[0].id);
+    }
+  } catch (error) {
+    console.error("No se pudo cargar el historial:", error);
+  }
+};
 
   const activeChat =
     chats.find((chat) => chat.id === activeChatId) ?? chats[0];
