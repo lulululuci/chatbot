@@ -312,17 +312,17 @@ function App() {
 
     setLoading(true);
 
-    try {
-      const response = await fetch("http://localhost:3000/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: trimmedMessage,
-        }),
-      });
-
+   try {
+  const response = await fetch("http://localhost:3000/chat", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      message: trimmedMessage,
+      chatId,
+    }),
+  });
       const data = await response.json();
 
       const wollokMessage: ChatMessage = {

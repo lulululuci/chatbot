@@ -24,7 +24,6 @@ function loadKnowledge(): KnowledgeChunk[] {
     const filePath = path.join(knowledgePath, file);
     const content = readFileSync(filePath, "utf-8");
 
-    // Cada ## representa una seccion principal.
     const sections = content.split(/^## /m);
 
     for (const section of sections) {
@@ -32,12 +31,14 @@ function loadKnowledge(): KnowledgeChunk[] {
 
       const lines = section.split("\n");
       const mainTitle = lines[0]!.trim();
-      const mainContent = lines.slice(1).join("\n").trim();
 
-      // Cada ### representa un fragmento mas especifico.
+      const mainContent = lines
+        .slice(1)
+        .join("\n")
+        .trim();
+
       const subsections = mainContent.split(/^### /m);
 
-      // Si no hay subsecciones, guardamos la seccion completa.
       if (subsections.length === 1) {
         chunks.push({
           source: file,
@@ -48,7 +49,7 @@ function loadKnowledge(): KnowledgeChunk[] {
         continue;
       }
 
-            const introduction = subsections[0]!.trim();
+      const introduction = subsections[0]!.trim();
 
       if (introduction) {
         chunks.push({
@@ -57,25 +58,27 @@ function loadKnowledge(): KnowledgeChunk[] {
           content: introduction,
         });
       }
-     // Guardamos cada ### como un fragmento independiente.
-for (let i = 1; i < subsections.length; i++) {
-  const subsection = subsections[i]!.trim();
 
-  if (!subsection) continue;
+      for (let i = 1; i < subsections.length; i++) {
+        const subsection = subsections[i]!.trim();
 
-  const subsectionLines = subsection.split("\n");
-  const title = subsectionLines[0]!.trim();
-  const content = subsectionLines
-    .slice(1)
-    .join("\n")
-    .trim();
+        if (!subsection) continue;
 
-  chunks.push({
-    source: file,
-    title: `${mainTitle} - ${title}`,
-    content,
-  });
-}
+        const subsectionLines = subsection.split("\n");
+
+        const title = subsectionLines[0]!.trim();
+
+        const content = subsectionLines
+          .slice(1)
+          .join("\n")
+          .trim();
+
+        chunks.push({
+          source: file,
+          title: `${mainTitle} - ${title}`,
+          content,
+        });
+      }
     }
   }
 
@@ -83,11 +86,120 @@ for (let i = 1; i < subsections.length; i++) {
 }
 
 function tokenize(text: string): string[] {
+  const stopWords = new Set([
+    "a",
+    "al",
+    "como",
+    "con",
+    "de",
+    "del",
+    "el",
+    "en",
+    "es",
+    "la",
+    "las",
+    "lo",
+    "los",
+    "para",
+    "por",
+    "que",
+    "se",
+    "un",
+    "una",
+    "y",
+  ]);
+
   return text
     .toLowerCase()
-    .replace(/[^\w\s]/g, " ")
+    .normalize("NFD")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
     .split(/\s+/)
-    .filter(Boolean);
+    .filter(
+      (word) => word && !stopWords.has(word)
+    );
+}
+
+function expandWords(words: string[]): string[] {
+  const synonyms: Record<string, string[]> = {
+    cuantos: ["cantidad", "size"],
+    cantidad: ["cuantos", "size"],
+    size: ["cantidad", "cuantos"],
+
+    primero: ["primer", "first"],
+    primer: ["primero", "first"],
+    first: ["primero", "primer"],
+
+    ultimo: ["last"],
+    last: ["ultimo"],
+
+    obtener: ["get"],
+    get: ["obtener"],
+
+    lista: ["list"],
+    list: ["lista"],
+  };
+
+  const expanded = new Set<string>(words);
+
+  for (const word of words) {
+    const relatedWords = synonyms[word];
+
+    if (!relatedWords) continue;
+
+    for (const relatedWord of relatedWords) {
+      expanded.add(relatedWord);
+    }
+  }
+
+  return [...expanded];
+}
+
+/*
+  Calcula en cuantos chunks aparece una palabra.
+
+  Si aparece en muchos chunks, es poco especifica.
+  Si aparece en pocos chunks, es mas informativa.
+*/
+function documentFrequency(
+  word: string,
+  chunks: KnowledgeChunk[]
+): number {
+  let frequency = 0;
+
+  for (const chunk of chunks) {
+    const words = new Set(
+      tokenize(`${chunk.title} ${chunk.content}`)
+    );
+
+    if (words.has(word)) {
+      frequency++;
+    }
+  }
+
+  return frequency;
+}
+
+/*
+  IDF = Inverse Document Frequency.
+
+  Una palabra rara recibe mayor peso.
+  Una palabra muy comun recibe menor peso.
+*/
+function calculateIdf(
+  word: string,
+  chunks: KnowledgeChunk[]
+): number {
+  const frequency = documentFrequency(
+    word,
+    chunks
+  );
+
+  const totalDocuments = chunks.length;
+
+  return Math.log(
+    (totalDocuments + 1) / (frequency + 1)
+  ) + 1;
 }
 
 export function searchKnowledge(
@@ -95,20 +207,49 @@ export function searchKnowledge(
   limit: number = 3
 ): KnowledgeChunk[] {
   const chunks = loadKnowledge();
-  const questionWords = tokenize(question);
+
+  const questionWords = expandWords(
+    tokenize(question)
+  );
+
+ //calculo previo del IDF
+  const idfByWord = new Map<string, number>();
+
+for (const word of questionWords) {
+  idfByWord.set(
+    word,
+    calculateIdf(word, chunks)
+  );
+}  
 
   const results = chunks.map((chunk) => {
-    const chunkWords = tokenize(
-      `${chunk.title} ${chunk.content}`
-    );
+    const titleWords = tokenize(chunk.title);
+    const contentWords = tokenize(chunk.content);
 
     let score = 0;
 
+    //calculo dentro del bucle
     for (const word of questionWords) {
-      if (chunkWords.includes(word)) {
-        score++;
+      const idf = idfByWord.get(word) ?? 0;
+
+      /*
+        El titulo sigue teniendo mas importancia,
+        pero ahora tambien tenemos en cuenta
+        lo especifica que es cada palabra.
+      */
+      if (titleWords.includes(word)) {
+        score += idf * 2;
+      }
+
+      if (contentWords.includes(word)) {
+        score += idf;
       }
     }
+
+    console.log({
+      title: chunk.title,
+      score: Number(score.toFixed(2)),
+    });
 
     return {
       chunk,

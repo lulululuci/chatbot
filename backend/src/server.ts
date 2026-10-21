@@ -3,6 +3,7 @@ import cors from "cors";
 import { searchKnowledge } from "./rag.js";
 import { tutor } from "./tutor.js";
 import { probarConexionDB, db } from "./db.js";
+import { generateWithOllama } from "./ollama.js";
 
 const app = express();
 const PORT = 3000;
@@ -17,29 +18,43 @@ app.get("/", (_req, res) => {
 app.post("/chat", async (req, res) => {
   const { message, chatId } = req.body;
 
-  const results = searchKnowledge(message);
-  const response = tutor(message, results);
+  try {
+    const results = searchKnowledge(message);
+const answer = await generateWithOllama(message, results);
 
-  await db.query(
-    `INSERT INTO conversations
-      (question, answer, topic, level, chat_id)
-     VALUES ($1, $2, $3, $4, $5)`,
-    [
-      message,
-      response.answer,
-      response.topic,
-      response.level,
-      chatId ?? null,
-    ]
-  );
+const response = {
+  answer,
+  topic: results[0]?.title ?? "general",
+  level: 1,
+};
 
-  res.json({
-    question: message,
-    answer: response.answer,
-    topic: response.topic,
-    level: response.level,
-    context: results,
-  });
+    await db.query(
+      `INSERT INTO conversations
+        (question, answer, topic, level, chat_id)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [
+        message,
+        response.answer,
+        response.topic,
+        response.level,
+        chatId ?? null,
+      ]
+    );
+
+    res.json({
+      question: message,
+      answer: response.answer,
+      topic: response.topic,
+      level: response.level,
+      context: results,
+    });
+  } catch (error) {
+    console.error("Error al procesar el mensaje:", error);
+
+    res.status(500).json({
+      error: "No se pudo procesar el mensaje",
+    });
+  }
 });
 
 app.get("/history", async (_req, res) => {
@@ -54,15 +69,12 @@ app.get("/history", async (_req, res) => {
         created_at,
         chat_id
        FROM conversations
-       ORDER BY created_at DESC`
+       ORDER BY created_at ASC`
     );
 
     res.json(result.rows);
   } catch (error) {
-    console.error(
-      "Error al obtener el historial:",
-      error
-    );
+    console.error("Error al obtener el historial:", error);
 
     res.status(500).json({
       error: "No se pudo obtener el historial",
