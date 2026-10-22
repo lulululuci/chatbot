@@ -22,9 +22,24 @@ function loadKnowledge(): KnowledgeChunk[] {
     if (!file.endsWith(".md")) continue;
 
     const filePath = path.join(knowledgePath, file);
-    const content = readFileSync(filePath, "utf-8");
+const content = readFileSync(filePath, "utf-8");
 
-    const sections = content.split(/^## /m);
+// Eliminar los metadatos iniciales de Markdown, si existen.
+const normalizedContent = content.replace(
+  /^---\r?\n[\s\S]*?\r?\n---\r?\n?/,
+  ""
+).trim();
+
+const sections = normalizedContent.split(/^## /m);
+
+// Si el documento no tiene título principal, descartar
+// el texto introductorio anterior a la primera sección.
+if (
+  sections.length > 1 &&
+  !sections[0]!.trimStart().startsWith("# ")
+) {
+  sections.shift();
+}
 
     for (const section of sections) {
       if (!section.trim()) continue;
@@ -257,9 +272,19 @@ for (const word of questionWords) {
     };
   });
 
-  return results
-    .filter((result) => result.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit)
-    .map((result) => result.chunk);
+    const selectedChunks = results
+  .filter((result) => result.score > 0)
+  .sort((a, b) => b.score - a.score)
+  .slice(0, limit);
+
+console.log(
+  "FRAGMENTOS SELECCIONADOS:",
+  selectedChunks.map(({ chunk, score }) => ({
+    source: chunk.source,
+    title: chunk.title,
+    score: Number(score.toFixed(2)),
+  }))
+);
+
+return selectedChunks.map((result) => result.chunk);
 }

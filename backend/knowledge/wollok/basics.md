@@ -148,7 +148,7 @@ condicion1 || condicion2
 
 ! representa NOT.
 
-## Repeticion
+## Recorrer una lista con forEach
 
 Los programas pueden necesitar repetir una accion sobre varios elementos.
 

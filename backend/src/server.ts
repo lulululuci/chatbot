@@ -1,9 +1,10 @@
+
 import express from "express";
 import cors from "cors";
 import { searchKnowledge } from "./rag.js";
-import { tutor } from "./tutor.js";
 import { probarConexionDB, db } from "./db.js";
 import { generateWithOllama } from "./ollama.js";
+import { getHardcodedAnswer } from "./hardcodedAnswers.js";
 
 const app = express();
 const PORT = 3000;
@@ -19,14 +20,25 @@ app.post("/chat", async (req, res) => {
   const { message, chatId } = req.body;
 
   try {
-    const results = searchKnowledge(message);
-const answer = await generateWithOllama(message, results);
+    if (typeof message !== "string" || !message.trim()) {
+      res.status(400).json({
+        error: "El mensaje es obligatorio",
+      });
+      return;
+    }
 
-const response = {
-  answer,
-  topic: results[0]?.title ?? "general",
-  level: 1,
-};
+    const results = searchKnowledge(message);
+    const hardcoded = getHardcodedAnswer(message);
+
+    const answer =
+      hardcoded?.answer ??
+      await generateWithOllama(message, results);
+
+    const response = {
+      answer,
+      topic: hardcoded?.topic ?? results[0]?.title ?? "general",
+      level: 1,
+    };
 
     await db.query(
       `INSERT INTO conversations
